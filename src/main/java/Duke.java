@@ -43,6 +43,9 @@ public class Duke {
                             " outstanding Tasks remaining.");
                         break;
 
+                    case "undone":
+                        break;
+
                     case "done":
                         try { 
                             Integer taskNumber = scanner.nextInt();
