@@ -1,23 +1,29 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Deadline extends Task {
-    private String By;
+    private LocalDateTime by;
 
-    Deadline (String Description, String By) {
-        super(Description);
-        this.By = By;
+    public Deadline (String description, LocalDateTime by)
+            throws Task.EmptyDescriptionException  {
+        super(description); this.by = by;
     }
 
-    Deadline (String[] creationCommand) {
-        super(Integer.parseInt(creationCommand[1]), creationCommand[2]);
-        this.By = creationCommand[3];
-    }
-
-    @Override
-    public String TaskInformation () {
-        return "[D]" + super.TaskInformation() + " (by: " + this.By + ")";
+    public Deadline (String description, boolean isDone, LocalDateTime createdDateTime,
+            LocalDateTime by) throws Task.EmptyDescriptionException {
+        super(description, isDone, createdDateTime);
+        this.by = by;
     }
 
     @Override
-    public String creationCommand () {
-        return "D :: " + super.creationCommand() + " :: " + this.By;
+    public String taskInformation (DateTimeFormatter outputFormat) {
+        return "[D]" + super.taskInformation(outputFormat) + " [ by: " + 
+                this.by.format(outputFormat) + " ]";
+    }
+
+    @Override
+    public String toCommand (String delimiter, DateTimeFormatter parseFormat) {
+        return "D" + delimiter + super.toCommand(delimiter, parseFormat) + delimiter + 
+                this.by.format(parseFormat);
     }
 }

@@ -1,19 +1,23 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class ToDo extends Task {
-    ToDo (String Description) {
-        super(Description);
+    public ToDo (String description) throws Task.EmptyDescriptionException {
+        super(description);
     }
 
-    ToDo (String[] creationCommand) {
-        super(Integer.parseInt(creationCommand[1]), creationCommand[2]);
-    }
-
-    @Override
-    public String TaskInformation () {
-        return "[T]" + super.TaskInformation();
+    public ToDo (String description, boolean isDone, LocalDateTime createdDateTime)
+            throws Task.EmptyDescriptionException {
+        super(description, isDone, createdDateTime);
     }
 
     @Override
-    public String creationCommand () {
-        return "T :: " + super.creationCommand();
+    public String taskInformation (DateTimeFormatter outputFormat) {
+        return "[T]" + super.taskInformation(outputFormat);
+    }
+
+    @Override
+    public String toCommand (String delimiter, DateTimeFormatter parseFormat) {
+        return "T" + delimiter + super.toCommand(delimiter, parseFormat);
     }
 }

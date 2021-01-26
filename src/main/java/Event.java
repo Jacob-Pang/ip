@@ -1,23 +1,31 @@
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Event extends Task {
-    private String At;
+    private LocalDateTime at;
 
-    Event (String Description, String At) {
-        super(Description);
-        this.At = At;
+    public Event (String description, LocalDateTime at) 
+        throws Task.EmptyDescriptionException {
+
+        super(description); this.at = at;
     }
 
-    Event (String[] creationCommand) {
-        super(Integer.parseInt(creationCommand[1]), creationCommand[2]);
-        this.At = creationCommand[3];
+    public Event (String description, boolean isDone, LocalDateTime createdDateTime,
+            LocalDateTime at) throws Task.EmptyDescriptionException {
+
+        super(description, isDone, createdDateTime);
+        this.at = at;
     }
 
     @Override
-    public String TaskInformation () {
-        return "[E]" + super.TaskInformation() + " (at: " + this.At + ")";
+    public String taskInformation (DateTimeFormatter outputFormat) {
+        return "[E]" + super.taskInformation(outputFormat) + " [ at: " + 
+                this.at.format(outputFormat) + " ]";
     }
 
     @Override
-    public String creationCommand () {
-        return "E :: " + super.creationCommand() + " :: " + this.At;
+    public String toCommand (String delimiter, DateTimeFormatter parseFormat) {
+        return "E" + delimiter + super.toCommand(delimiter, parseFormat) + delimiter + 
+                this.at.format(parseFormat);
     }
 }

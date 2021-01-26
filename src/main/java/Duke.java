@@ -1,134 +1,105 @@
 import java.util.Scanner;
-import java.util.ArrayList;
+import java.time.format.DateTimeParseException;
 
 public class Duke {
-    public static void main(String[] args) {
-        String logo = " ____        _        \n"
-                    + "|  _ \\ _   _| | _____ \n"
-                    + "| | | | | | | |/ / _ \\\n"
-                    + "| |_| | |_| |   <  __/\n"
-                    + "|____/ \\__,_|_|\\_\\___|\n";
-        System.out.println("Hello from\n" + logo);
-        System.out.println("    ____________________________________________________________");
-        System.out.println("     Reading saved Tasks under User A0183450J");
-        ArrayList<Task> Tasks = TaskInterpreter.readTasks("A0183450J");
-        greet();
-        System.out.println("    ____________________________________________________________\n");
+    private Ui ui;
+    private Storage storage;
+    private TaskList tasks;
+    private String username;
 
+    public Duke (String username) {
+        this.ui = new Ui();
+        this.ui.brace();
+        this.ui.greet();
+
+        this.username = username;
+        this.storage = new Storage(this.username);
+
+        this.ui.storageReading(this.username);
+        this.tasks = this.storage.readTasks();
+        
+        this.ui.brace();
+    }
+
+    public void run () {
         Scanner scanner = new Scanner(System.in);
+
         user_active: while (true) {
             String command = scanner.next();
-            String commandcont;
-            Integer subcommand;
 
-            System.out.println("    ____________________________________________________________");
+            this.ui.brace();
             try {
                 switch (command) {
-                    case "bye":     // exit
-                        System.out.println("     Saving Tasks under User A0183450J");
-                        TaskInterpreter.saveTasks(Tasks, "A0183450J");
-                        byebye();
+                    case "bye":
                         break user_active;
-
-                    case "list":    // regurgitate tasks
-                        int outstanding = 0;
-
-                        for (int t = 0; t < Tasks.size(); t ++) {
-                            System.out.println("     " + (t + 1) +  "." + 
-                                    Tasks.get(t).TaskInformation());
-                            if (Tasks.get(t).outstanding()) { outstanding += 1; }
+                    
+                    case "list":
+                        for (int i = 0; i < this.tasks.size(); ++ i) {
+                            this.ui.print(i + 1 + ". " + this.tasks.get(i).taskInformation(
+                                    Ui.outputFormat));
                         }
 
-                        System.out.println("     You have " + outstanding + 
-                            " outstanding Tasks remaining.");
+                        this.ui.print("You have " + this.tasks.outstandingTasks().size() 
+                                + " undone tasks.");
                         break;
 
                     case "undone":
                         break;
-
+                    
                     case "done":
-                        try { 
-                            Integer taskNumber = scanner.nextInt();
-                            Tasks.get(taskNumber - 1).markDone(); 
-                        } catch (Exception NonNumberE) {
-                            System.out.println("     tasks must be marked with integers!");
-                        }
+                        int taskIndex = scanner.nextInt();
+                        this.tasks.markAsDone(taskIndex, Ui.outputFormat);
                         break;
-
+                    
                     case "todo":
-                        commandcont = scanner.nextLine();
-                        if (commandcont.isEmpty()) { throw new Exception ("     missing task description!"); }
+                        this.tasks.add(new ToDo(scanner.nextLine()));
+                        this.ui.addedTask(this.tasks);
+                        break;
+                    
+                    case "event":
+                        this.tasks.add(Parser.parseNewTaskCommand(
+                                scanner.nextLine().trim(), "/at"));
 
-                        Tasks.add(new ToDo(commandcont.trim()));
-                        updateTasks(Tasks);
+                        this.ui.addedTask(this.tasks);
                         break;
 
                     case "deadline":
-                        commandcont = scanner.nextLine().trim();
-                        subcommand = commandcont.indexOf("/by");
-                        if (subcommand < 0) { throw new Exception ("     missing /by subcommand!"); }
-
-                        String By = commandcont.substring(subcommand + 3).trim();
-                        if (By.isEmpty()) { throw new Exception ("     missing /by description!"); }
-
-                        commandcont = commandcont.substring(0, subcommand - 1).trim();
-                        if (commandcont.isEmpty()) { throw new Exception ("     missing task description!"); }
-
-                        Tasks.add(new Deadline(commandcont, By));
-                        updateTasks(Tasks);
-                        break;
-
-                    case "event":
-                        commandcont = scanner.nextLine().trim();
-                        subcommand = commandcont.indexOf("/at");
-                        if (subcommand < 0) { throw new Exception ("     missing /at subcommand!"); }
-
-                        String At = commandcont.substring(subcommand + 3).trim();
-                        if (At.isEmpty()) { throw new Exception ("     missing /at description!"); }
-
-                        commandcont = commandcont.substring(0, subcommand - 1).trim();
-                        if (commandcont.isEmpty()) { throw new Exception ("     missing task description!"); }
-
-                        Tasks.add(new Event(commandcont, At));
-                        updateTasks(Tasks);
-                        break;
-
-                    case "delete":
-                        try { 
-                            Task dead = Tasks.remove(scanner.nextInt() - 1);
-                            System.out.println("     Got it. I've removed this task:");
-                            System.out.println("     " + dead.TaskInformation());
-                            System.out.println("     Now you have " + Tasks.size() + " tasks in the list.");
-
-                        } catch (Exception NonNumberE) {
-                            System.out.println("     task does not exist or must be marked with integers!");
-                        }
-                        break;
+                        this.tasks.add(Parser.parseNewTaskCommand(
+                                scanner.nextLine().trim(), "/by"));
                         
-                    default:    // appends to list
-                        System.out.println("     D: what do you mean...");
-                }
+                        this.ui.addedTask(this.tasks);
+                        break;
+                    
+                    case "delete":
+                        this.ui.removedTask(this.tasks, this.tasks.remove(
+                                scanner.nextInt() - 1));
+
+                        break;
+                    default:
+                        this.ui.confuzzled();
+                    }
+            } catch (DateTimeParseException E) {
+                this.ui.print("! Input datetime must be of format yyyy-MM-dd HHmm");
             } catch (Exception E) {
-                System.out.println(E.getMessage());
+                this.ui.print(E.getMessage());
             }
-            System.out.println("    ____________________________________________________________\n");
+
+            this.ui.brace();
         }
 
         scanner.close();
+
+        try {
+            this.storage.saveTasks(this.tasks);
+        } catch (Exception E) {
+
+        }
+
+        this.ui.byebye();
     }
 
-    public static void updateTasks (ArrayList<Task> Tasks) {
-        System.out.println("     Got it. I've added this task:");
-        System.out.println("     " + Tasks.get(Tasks.size() - 1).TaskInformation());
-        System.out.println("     Now you have " + Tasks.size() + " tasks in the list.");
-    }
 
-    public static void greet() {
-        System.out.println("     What can I do for you?");
+    public static void main(String[] args) {
+        new Duke("A0183450J").run();
     }
-
-    public static void byebye() {
-        System.out.println("     ByeBye. Hope to see you again soon!");
-    }
-
 }
